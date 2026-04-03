@@ -49,7 +49,8 @@ use ui::{
     Tooltip, prelude::*, right_click_menu,
 };
 use util::{
-    ResultExt, debug_panic, maybe, paths::PathStyle, serde::default_true, truncate_and_remove_front,
+    ResultExt, debug_panic, markdown::MarkdownInlineCode, maybe, paths::PathStyle,
+    serde::default_true, truncate_and_remove_front,
 };
 
 /// A selected entry in e.g. project panel.
@@ -4828,10 +4829,6 @@ impl NavHistoryState {
     }
 }
 
-fn code_span(name: impl AsRef<str>) -> String {
-    format!("`{}`", name.as_ref())
-}
-
 fn dirty_message_for(buffer_path: Option<ProjectPath>, path_style: PathStyle) -> String {
     let path = buffer_path
         .as_ref()
@@ -4843,7 +4840,7 @@ fn dirty_message_for(buffer_path: Option<ProjectPath>, path_style: PathStyle) ->
     let path = truncate_and_remove_front(&path, 80);
     format!(
         "{} contains unsaved edits. Do you want to save it?",
-        code_span(path)
+        MarkdownInlineCode(path.as_str())
     )
 }
 
