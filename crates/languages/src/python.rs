@@ -14,7 +14,7 @@ use language::{
 use language::{ContextProvider, LspAdapter, LspAdapterDelegate};
 use language::{LanguageName, ManifestName, ManifestProvider, ManifestQuery};
 use language::{Toolchain, ToolchainList, ToolchainLister, ToolchainMetadata};
-use lsp::{LanguageServerBinary, Uri};
+use lsp::{LanguageServerBinary, ServerBinaryKind, Uri};
 use lsp::{LanguageServerBinaryOptions, LanguageServerName};
 use node_runtime::{NodeRuntime, VersionStrategy};
 use pet_core::Configuration;
@@ -440,6 +440,7 @@ impl LspInstaller for TyLspAdapter {
                     path: ty_bin,
                     env: Some(env),
                     arguments: vec!["server".into()],
+                    kind: ServerBinaryKind::Standalone,
                 });
             }
         }
@@ -473,6 +474,7 @@ impl LspInstaller for TyLspAdapter {
             path: server_path.clone(),
             env: None,
             arguments: vec!["server".into()],
+            kind: ServerBinaryKind::Standalone,
         };
 
         let metadata_path = destination_path.with_extension("metadata");
@@ -486,6 +488,7 @@ impl LspInstaller for TyLspAdapter {
                         path: server_path.clone(),
                         arguments: vec!["--version".into()],
                         env: None,
+                        kind: ServerBinaryKind::Standalone,
                     })
                     .await
                     .inspect_err(|err| {
@@ -532,13 +535,14 @@ impl LspInstaller for TyLspAdapter {
             path: server_path,
             env: None,
             arguments: vec!["server".into()],
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
     async fn cached_server_binary(
         &self,
         container_dir: PathBuf,
-        _: &dyn LspAdapterDelegate,
+        delegate: &dyn LspAdapterDelegate,
     ) -> Option<LanguageServerBinary> {
         maybe!(async {
             let mut last = None;
@@ -563,6 +567,7 @@ impl LspInstaller for TyLspAdapter {
                 path,
                 env: None,
                 arguments: vec!["server".into()],
+                kind: ServerBinaryKind::Standalone,
             })
         })
         .await
@@ -592,7 +597,8 @@ impl PyrightLspAdapter {
             Some(LanguageServerBinary {
                 path: node.binary_path().await.log_err()?,
                 env: None,
-                arguments: vec![server_path.into(), "--stdio".into()],
+                arguments: vec![server_path.clone().into(), "--stdio".into()],
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         } else {
             log::error!("missing executable in directory {:?}", server_path);
@@ -744,6 +750,7 @@ impl LspInstaller for PyrightLspAdapter {
                 path: pyright_bin,
                 env: Some(env),
                 arguments: vec!["--stdio".into()],
+                kind: ServerBinaryKind::Standalone,
             })
         } else {
             let node = delegate.which("node".as_ref()).await?;
@@ -759,6 +766,7 @@ impl LspInstaller for PyrightLspAdapter {
                 path: node,
                 env: Some(env),
                 arguments: vec![path.into(), "--stdio".into()],
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         }
     }
@@ -784,37 +792,8 @@ impl LspInstaller for PyrightLspAdapter {
             path: self.node.binary_path().await?,
             env: Some(env),
             arguments: vec![server_path.into(), "--stdio".into()],
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
-    }
-
-    async fn check_if_version_installed(
-        &self,
-        version: &Self::BinaryVersion,
-        container_dir: &PathBuf,
-        delegate: &dyn LspAdapterDelegate,
-    ) -> Option<LanguageServerBinary> {
-        let server_path = container_dir.join(Self::SERVER_PATH);
-
-        let should_install_language_server = self
-            .node
-            .should_install_npm_package(
-                Self::SERVER_NAME.as_ref(),
-                &server_path,
-                container_dir,
-                VersionStrategy::Latest(version),
-            )
-            .await;
-
-        if should_install_language_server {
-            None
-        } else {
-            let env = delegate.shell_env().await;
-            Some(LanguageServerBinary {
-                path: self.node.binary_path().await.ok()?,
-                env: Some(env),
-                arguments: vec![server_path.into(), "--stdio".into()],
-            })
-        }
     }
 
     async fn cached_server_binary(
@@ -1882,6 +1861,7 @@ impl LspInstaller for PyLspAdapter {
                     path: pylsp_bin.clone(),
                     arguments: vec!["--version".into()],
                     env: Some(env.clone()),
+                    kind: ServerBinaryKind::Standalone,
                 })
                 .await
                 .inspect_err(|err| {
@@ -1892,6 +1872,7 @@ impl LspInstaller for PyLspAdapter {
                 path: pylsp_bin,
                 env: Some(env),
                 arguments: vec![],
+                kind: ServerBinaryKind::Standalone,
             })
         } else {
             let toolchain = toolchain?;
@@ -1904,6 +1885,7 @@ impl LspInstaller for PyLspAdapter {
                     path: toolchain.path.to_string().into(),
                     arguments: vec![pylsp_path.clone().into(), "--version".into()],
                     env: None,
+                    kind: ServerBinaryKind::Standalone,
                 })
                 .await
                 .inspect_err(|err| {
@@ -1914,6 +1896,7 @@ impl LspInstaller for PyLspAdapter {
                 path: toolchain.path.to_string().into(),
                 arguments: vec![pylsp_path.into()],
                 env: None,
+                kind: ServerBinaryKind::PythonRuntime(0),
             })
         }
     }
@@ -1966,6 +1949,7 @@ impl LspInstaller for PyLspAdapter {
             path: pylsp,
             env: None,
             arguments: vec![],
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -1981,6 +1965,7 @@ impl LspInstaller for PyLspAdapter {
             path: pylsp,
             env: None,
             arguments: vec![],
+            kind: ServerBinaryKind::Standalone,
         })
     }
 }
@@ -2009,6 +1994,7 @@ impl BasedPyrightLspAdapter {
                 path: node.binary_path().await.log_err()?,
                 env: None,
                 arguments: vec![server_path.into(), "--stdio".into()],
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         } else {
             log::error!("missing executable in directory {:?}", server_path);
@@ -2173,6 +2159,7 @@ impl LspInstaller for BasedPyrightLspAdapter {
                 path,
                 env: Some(env),
                 arguments: vec!["--stdio".into()],
+                kind: ServerBinaryKind::Standalone,
             })
         } else {
             // TODO shouldn't this be self.node.binary_path()?
@@ -2189,6 +2176,7 @@ impl LspInstaller for BasedPyrightLspAdapter {
                 path: node,
                 env: Some(env),
                 arguments: vec![path.into(), "--stdio".into()],
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         }
     }
@@ -2214,6 +2202,7 @@ impl LspInstaller for BasedPyrightLspAdapter {
             path: self.node.binary_path().await?,
             env: Some(env),
             arguments: vec![server_path.into(), "--stdio".into()],
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 
@@ -2243,6 +2232,7 @@ impl LspInstaller for BasedPyrightLspAdapter {
                 path: self.node.binary_path().await.ok()?,
                 env: Some(env),
                 arguments: vec![server_path.into(), "--stdio".into()],
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         }
     }
@@ -2502,6 +2492,7 @@ impl LspInstaller for RuffLspAdapter {
                     path: ruff_bin,
                     env: Some(env),
                     arguments: vec!["server".into()],
+                    kind: ServerBinaryKind::Standalone,
                 });
             }
         }
@@ -2553,6 +2544,7 @@ impl LspInstaller for RuffLspAdapter {
             path: server_path.clone(),
             env: None,
             arguments: vec!["server".into()],
+            kind: ServerBinaryKind::Standalone,
         };
 
         let metadata_path = destination_path.with_extension("metadata");
@@ -2566,6 +2558,7 @@ impl LspInstaller for RuffLspAdapter {
                         path: server_path.clone(),
                         arguments: vec!["--version".into()],
                         env: None,
+                        kind: ServerBinaryKind::Standalone,
                     })
                     .await
                     .inspect_err(|err| {
@@ -2612,6 +2605,7 @@ impl LspInstaller for RuffLspAdapter {
             path: server_path,
             env: None,
             arguments: vec!["server".into()],
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -2643,6 +2637,7 @@ impl LspInstaller for RuffLspAdapter {
                 path,
                 env: None,
                 arguments: vec!["server".into()],
+                kind: ServerBinaryKind::Standalone,
             })
         })
         .await

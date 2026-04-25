@@ -73,6 +73,16 @@ pub enum IoKind {
     StdErr,
 }
 
+/// Describes how a language server binary is launched, determining what path
+/// to display to the user.
+#[derive(Clone, Debug, Serialize)]
+pub enum ServerBinaryKind {
+    NodeRuntime(usize),
+    PythonRuntime(usize),
+    Standalone,
+    Extension(Option<usize>),
+}
+
 /// Represents a launchable language server. This can either be a standalone binary or the path
 /// to a runtime with arguments to instruct it to launch the actual language server file.
 #[derive(Clone, Serialize)]
@@ -80,6 +90,26 @@ pub struct LanguageServerBinary {
     pub path: PathBuf,
     pub arguments: Vec<OsString>,
     pub env: Option<HashMap<String, String>>,
+    pub kind: ServerBinaryKind,
+}
+
+impl ServerBinaryKind {
+    fn script_argument_index(&self) -> Option<usize> {
+        match self {
+            Self::NodeRuntime(index) | Self::PythonRuntime(index) => Some(*index),
+            Self::Extension(Some(index)) => Some(*index),
+            Self::Standalone | Self::Extension(None) => None,
+        }
+    }
+}
+
+impl LanguageServerBinary {
+    pub fn display_path(&self) -> &Path {
+        self.kind
+            .script_argument_index()
+            .and_then(|index| self.arguments.get(index).map(|arg| Path::new(arg)))
+            .unwrap_or(&self.path)
+    }
 }
 
 /// Configures the search (and installation) of language servers.
@@ -1770,6 +1800,7 @@ impl fmt::Debug for LanguageServerBinary {
         let mut debug = f.debug_struct("LanguageServerBinary");
         debug.field("path", &self.path);
         debug.field("arguments", &self.arguments);
+        debug.field("kind", &self.kind);
 
         if let Some(env) = &self.env {
             let redacted_env: BTreeMap<String, String> = env
@@ -2095,6 +2126,7 @@ mod tests {
                 path: "path/to/language-server".into(),
                 arguments: vec![],
                 env: None,
+                kind: ServerBinaryKind::Standalone,
             },
             "the-lsp".to_string(),
             Default::default(),
@@ -2231,6 +2263,7 @@ mod tests {
                 path: "path/to/language-server".into(),
                 arguments: vec![],
                 env: None,
+                kind: ServerBinaryKind::Standalone,
             },
             "test-lsp".to_string(),
             Default::default(),
@@ -2252,5 +2285,90 @@ mod tests {
             expected_path.to_string_lossy(),
             "root_path should be derived from root_uri"
         );
+    }
+
+    #[test]
+    fn test_display_path_returns_script_for_node_runtime() {
+        let binary = LanguageServerBinary {
+            path: "/usr/bin/node".into(),
+            arguments: vec!["/path/to/script.js".into(), "--stdio".into()],
+            env: None,
+            kind: ServerBinaryKind::NodeRuntime(0),
+        };
+        assert_eq!(binary.display_path(), Path::new("/path/to/script.js"));
+    }
+
+    #[test]
+    fn test_display_path_returns_path_for_standalone() {
+        let binary = LanguageServerBinary {
+            path: "/usr/bin/ruff".into(),
+            arguments: vec!["server".into()],
+            env: None,
+            kind: ServerBinaryKind::Standalone,
+        };
+        assert_eq!(binary.display_path(), Path::new("/usr/bin/ruff"));
+    }
+
+    #[test]
+    fn test_display_path_returns_script_for_python_runtime() {
+        let binary = LanguageServerBinary {
+            path: "/usr/bin/python".into(),
+            arguments: vec!["/venv/bin/pylsp".into()],
+            env: None,
+            kind: ServerBinaryKind::PythonRuntime(0),
+        };
+        assert_eq!(binary.display_path(), Path::new("/venv/bin/pylsp"));
+    }
+
+    #[test]
+    fn test_display_path_returns_script_for_extension_with_index() {
+        let binary = LanguageServerBinary {
+            path: "/usr/bin/node".into(),
+            arguments: vec!["/path/to/extension-server.js".into(), "--stdio".into()],
+            env: None,
+            kind: ServerBinaryKind::Extension(Some(0)),
+        };
+        assert_eq!(
+            binary.display_path(),
+            Path::new("/path/to/extension-server.js")
+        );
+    }
+
+    #[test]
+    fn test_display_path_returns_path_for_extension_without_index() {
+        let binary = LanguageServerBinary {
+            path: "/usr/local/bin/extension-lsp".into(),
+            arguments: vec!["serve".into()],
+            env: None,
+            kind: ServerBinaryKind::Extension(None),
+        };
+        assert_eq!(
+            binary.display_path(),
+            Path::new("/usr/local/bin/extension-lsp")
+        );
+    }
+
+    #[test]
+    fn test_display_path_falls_back_to_binary_path_on_out_of_bounds() {
+        let binary = LanguageServerBinary {
+            path: "/usr/bin/node".into(),
+            arguments: vec![],
+            env: None,
+            kind: ServerBinaryKind::NodeRuntime(0),
+        };
+        assert_eq!(binary.display_path(), Path::new("/usr/bin/node"));
+    }
+
+    #[test]
+    fn test_debug_includes_kind() {
+        let binary = LanguageServerBinary {
+            path: "/usr/bin/node".into(),
+            arguments: vec![],
+            env: None,
+            kind: ServerBinaryKind::NodeRuntime(0),
+        };
+        let debug = format!("{:?}", binary);
+        assert!(debug.contains("kind"));
+        assert!(debug.contains("NodeRuntime"));
     }
 }

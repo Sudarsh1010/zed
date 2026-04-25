@@ -9,7 +9,7 @@ use language::{
     LanguageName, LanguageToolchainStore, LspAdapterDelegate, LspInstaller,
     language_settings::LanguageSettings,
 };
-use lsp::{LanguageServerBinary, LanguageServerName};
+use lsp::{LanguageServerBinary, ServerBinaryKind, LanguageServerName};
 
 use project::lsp_store::language_server_settings;
 use regex::Regex;
@@ -114,6 +114,7 @@ impl LspInstaller for GoLspAdapter {
             path,
             arguments: server_binary_arguments(),
             env: None,
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -145,6 +146,7 @@ impl LspInstaller for GoLspAdapter {
                     path: binary_path.to_path_buf(),
                     arguments: server_binary_arguments(),
                     env: None,
+                    kind: ServerBinaryKind::Standalone,
                 });
             }
         } else if let Some(path) = get_cached_server_binary(&container_dir).await {
@@ -185,6 +187,7 @@ impl LspInstaller for GoLspAdapter {
             path: binary_path.to_path_buf(),
             arguments: server_binary_arguments(),
             env: None,
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -478,6 +481,7 @@ async fn get_cached_server_binary(container_dir: &Path) -> Option<LanguageServer
             path,
             arguments: server_binary_arguments(),
             env: None,
+            kind: ServerBinaryKind::Standalone,
         })
     })
     .await

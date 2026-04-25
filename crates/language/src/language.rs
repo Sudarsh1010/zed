@@ -1366,6 +1366,7 @@ impl Default for FakeLspAdapter {
                 path: "/the/fake/lsp/path".into(),
                 arguments: vec![],
                 env: Default::default(),
+                kind: ServerBinaryKind::Standalone,
             },
             label_for_completion: None,
         }

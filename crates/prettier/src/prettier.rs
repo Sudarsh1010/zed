@@ -293,7 +293,7 @@ impl Prettier {
         request_timeout: Duration,
         mut cx: AsyncApp,
     ) -> anyhow::Result<Self> {
-        use lsp::{LanguageServerBinary, LanguageServerName};
+        use lsp::{LanguageServerBinary, ServerBinaryKind, LanguageServerName};
 
         let executor = cx.background_executor().clone();
         anyhow::ensure!(
@@ -312,8 +312,12 @@ impl Prettier {
         let server_name = LanguageServerName("prettier".into());
         let server_binary = LanguageServerBinary {
             path: node_path,
-            arguments: vec![prettier_server.into(), prettier_dir.as_path().into()],
+            arguments: vec![
+                prettier_server.clone().into(),
+                prettier_dir.as_path().into(),
+            ],
             env: None,
+            kind: ServerBinaryKind::NodeRuntime(0),
         };
 
         let server = LanguageServer::new(

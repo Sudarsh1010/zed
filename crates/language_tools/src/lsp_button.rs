@@ -231,7 +231,10 @@ impl LanguageServerState {
                             server_id,
                             (
                                 status.server_readable_version.clone(),
-                                status.binary.as_ref().map(|b| b.path.clone()),
+                                status
+                                    .binary
+                                    .as_ref()
+                                    .map(|b| b.display_path().to_path_buf()),
                                 status.process_id,
                             ),
                         )

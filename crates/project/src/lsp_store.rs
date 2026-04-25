@@ -724,6 +724,7 @@ impl LocalLspStore {
                         .iter()
                         .map(Into::into)
                         .collect(),
+                    kind: ServerBinaryKind::Standalone,
                 })
             });
         }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use gpui::AsyncApp;
 use language::{LspAdapter, LspAdapterDelegate, LspInstaller, Toolchain};
-use lsp::{LanguageServerBinary, LanguageServerName, Uri};
+use lsp::{LanguageServerBinary, LanguageServerName, ServerBinaryKind, Uri};
 use node_runtime::{NodeRuntime, VersionStrategy};
 use project::lsp_store::language_server_settings;
 use semver::Version;
@@ -62,6 +62,7 @@ impl LspInstaller for TailwindCssLspAdapter {
             path,
             env: Some(env),
             arguments: vec!["--stdio".into()],
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -85,6 +86,7 @@ impl LspInstaller for TailwindCssLspAdapter {
             path: self.node.binary_path().await?,
             env: None,
             arguments: server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 
@@ -113,6 +115,7 @@ impl LspInstaller for TailwindCssLspAdapter {
                 path: self.node.binary_path().await.ok()?,
                 env: None,
                 arguments: server_binary_arguments(&server_path),
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         }
     }
@@ -188,6 +191,7 @@ async fn get_cached_server_binary(
             path: node.binary_path().await?,
             env: None,
             arguments: server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     })
     .await

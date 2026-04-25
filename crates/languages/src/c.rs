@@ -63,6 +63,7 @@ impl LspInstaller for CLspAdapter {
             path,
             arguments: Vec::new(),
             env: None,
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -86,6 +87,7 @@ impl LspInstaller for CLspAdapter {
             path: binary_path.clone(),
             env: None,
             arguments: Default::default(),
+            kind: ServerBinaryKind::Standalone,
         };
 
         let metadata_path = version_dir.join("metadata");
@@ -99,6 +101,7 @@ impl LspInstaller for CLspAdapter {
                         path: binary_path.clone(),
                         arguments: vec!["--version".into()],
                         env: None,
+                        kind: ServerBinaryKind::Standalone,
                     })
                     .await
                     .inspect_err(|err| {
@@ -397,6 +400,7 @@ async fn get_cached_server_binary(container_dir: PathBuf) -> Option<LanguageServ
             path: clangd_bin,
             env: None,
             arguments: Vec::new(),
+            kind: ServerBinaryKind::Standalone,
         })
     })
     .await

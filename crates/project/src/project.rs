@@ -3614,6 +3614,7 @@ impl Project {
                                             .map(OsString::from)
                                             .collect(),
                                         env: None,
+                                        kind: ServerBinaryKind::Standalone,
                                     });
                                 }
 

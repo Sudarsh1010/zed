@@ -152,6 +152,7 @@ impl LspInstaller for EsLintLspAdapter {
             path: self.node.binary_path().await?,
             env: None,
             arguments: eslint_server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 
@@ -167,6 +168,7 @@ impl LspInstaller for EsLintLspAdapter {
             path: self.node.binary_path().await.ok()?,
             env: None,
             arguments: eslint_server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 }

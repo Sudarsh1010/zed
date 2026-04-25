@@ -120,6 +120,7 @@ impl LspInstaller for VtslsLspAdapter {
             path: path.clone(),
             arguments: typescript_server_binary_arguments(&path),
             env: Some(env),
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -170,6 +171,7 @@ impl LspInstaller for VtslsLspAdapter {
             path: self.node.binary_path().await?,
             env: None,
             arguments: typescript_server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 
@@ -374,6 +376,7 @@ async fn get_cached_ts_server_binary(
             path: node.binary_path().await?,
             env: None,
             arguments: typescript_server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     })
     .await

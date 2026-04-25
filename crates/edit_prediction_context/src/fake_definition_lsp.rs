@@ -31,6 +31,7 @@ pub fn register_fake_definition_server(
                 path: PathBuf::from("fake-definition-lsp"),
                 arguments: Vec::new(),
                 env: None,
+                kind: ServerBinaryKind::Standalone,
             },
             capabilities: lsp::ServerCapabilities {
                 definition_provider: Some(lsp::OneOf::Left(true)),

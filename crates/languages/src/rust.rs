@@ -644,6 +644,7 @@ impl LspInstaller for RustLspAdapter {
                 path: path.clone(),
                 arguments: vec!["--help".into()],
                 env: Some(env.clone()),
+                kind: ServerBinaryKind::Standalone,
             })
             .await;
         if let Err(err) = result {
@@ -659,6 +660,7 @@ impl LspInstaller for RustLspAdapter {
             path,
             env: Some(env),
             arguments: vec![],
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -709,6 +711,7 @@ impl LspInstaller for RustLspAdapter {
             path: server_path.clone(),
             env: None,
             arguments: Default::default(),
+            kind: ServerBinaryKind::Standalone,
         };
 
         let metadata_path = destination_path.with_extension("metadata");
@@ -722,6 +725,7 @@ impl LspInstaller for RustLspAdapter {
                         path: server_path.clone(),
                         arguments: vec!["--version".into()],
                         env: None,
+                        kind: ServerBinaryKind::Standalone,
                     })
                     .await
                     .inspect_err(|err| {
@@ -768,6 +772,7 @@ impl LspInstaller for RustLspAdapter {
             path: server_path,
             env: None,
             arguments: Default::default(),
+            kind: ServerBinaryKind::Standalone,
         })
     }
 
@@ -1276,6 +1281,7 @@ async fn get_cached_server_binary(container_dir: PathBuf) -> Option<LanguageServ
             path,
             env: None,
             arguments: Vec::new(),
+            kind: ServerBinaryKind::Standalone,
         }))
     })
     .await;

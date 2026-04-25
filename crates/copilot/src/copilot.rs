@@ -532,6 +532,7 @@ impl Copilot {
                 path: "path/to/copilot".into(),
                 arguments: vec![],
                 env: None,
+                kind: ServerBinaryKind::Standalone,
             },
             "copilot".into(),
             Default::default(),
@@ -580,6 +581,7 @@ impl Copilot {
                 path: node_path,
                 arguments,
                 env,
+                kind: ServerBinaryKind::NodeRuntime(0),
             };
 
             let root_path = if cfg!(target_os = "windows") {

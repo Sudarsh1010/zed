@@ -707,6 +707,7 @@ impl LspInstaller for TypeScriptLspAdapter {
             path: self.node.binary_path().await.ok()?,
             env: None,
             arguments: typescript_server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 
@@ -738,6 +739,7 @@ impl LspInstaller for TypeScriptLspAdapter {
             path: self.node.binary_path().await?,
             env: None,
             arguments: typescript_server_binary_arguments(&server_path),
+            kind: ServerBinaryKind::NodeRuntime(0),
         })
     }
 
@@ -869,12 +871,14 @@ async fn get_cached_ts_server_binary(
                 path: node.binary_path().await?,
                 env: None,
                 arguments: typescript_server_binary_arguments(&new_server_path),
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         } else if old_server_path.exists() {
             Ok(LanguageServerBinary {
                 path: node.binary_path().await?,
                 env: None,
                 arguments: typescript_server_binary_arguments(&old_server_path),
+                kind: ServerBinaryKind::NodeRuntime(0),
             })
         } else {
             anyhow::bail!("missing executable in directory {container_dir:?}")
