@@ -22,6 +22,9 @@ use util::{ResultExt, fs::make_file_executable, maybe, rel_path::RelPath};
 
 use crate::{LanguageServerRegistryProxy, LspAccess};
 
+type RuntimeBinaryPathFn =
+    Arc<dyn (Fn() -> futures::future::BoxFuture<'static, Option<PathBuf>>) + Send + Sync>;
+
 /// An adapter that allows an [`LspAdapterDelegate`] to be used as a [`WorktreeDelegate`].
 struct WorktreeDelegateAdapter(pub Arc<dyn LspAdapterDelegate>);
 
@@ -64,6 +67,7 @@ impl ExtensionLanguageServerProxy for LanguageServerRegistryProxy {
                 extension,
                 language_server_id,
                 language,
+                self.runtime_binary_path_fn.clone(),
             )),
         );
     }
@@ -136,6 +140,7 @@ struct ExtensionLspAdapter {
     extension: Arc<dyn Extension>,
     language_server_id: LanguageServerName,
     language_name: LanguageName,
+    runtime_binary_path_fn: Option<RuntimeBinaryPathFn>,
 }
 
 impl ExtensionLspAdapter {
@@ -143,11 +148,13 @@ impl ExtensionLspAdapter {
         extension: Arc<dyn Extension>,
         language_server_id: LanguageServerName,
         language_name: LanguageName,
+        runtime_binary_path_fn: Option<RuntimeBinaryPathFn>,
     ) -> Self {
         Self {
             extension,
             language_server_id,
             language_name,
+            runtime_binary_path_fn,
         }
     }
 }
@@ -216,6 +223,11 @@ impl DynLspInstaller for ExtensionLspAdapter {
                         .context("failed to set file permissions")?;
                 }
 
+                let runtime_binary_path = match self.runtime_binary_path_fn.as_ref() {
+                    Some(f) => f().await,
+                    None => None,
+                };
+
                 Ok(LanguageServerBinary {
                     path,
                     arguments: command
@@ -245,6 +257,11 @@ impl DynLspInstaller for ExtensionLspAdapter {
                         })
                         .collect(),
                     env: Some(command.env.into_iter().collect()),
+                    kind: if runtime_binary_path.is_some_and(|p| p == path) {
+                        ServerBinaryKind::Extension(Some(0))
+                    } else {
+                        ServerBinaryKind::Extension(None)
+                    },
                 })
             })
             .await;

@@ -256,6 +256,7 @@ impl HeadlessProject {
             language_extension::LspAccess::ViaLspStore(lsp_store.clone()),
             proxy.clone(),
             languages.clone(),
+            None,
         );
 
         cx.subscribe(&buffer_store, |_this, _buffer_store, event, cx| {

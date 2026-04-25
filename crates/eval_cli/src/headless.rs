@@ -107,7 +107,12 @@ pub fn init(cx: &mut App) -> Arc<AgentCliAppState> {
 
     let extension_host_proxy = ExtensionHostProxy::global(cx);
     debug_adapter_extension::init(extension_host_proxy.clone(), cx);
-    language_extension::init(LspAccess::Noop, extension_host_proxy, languages.clone());
+    language_extension::init(
+        LspAccess::Noop,
+        extension_host_proxy,
+        languages.clone(),
+        None,
+    );
     language_model::init(cx);
     RefreshLlmTokenListener::register(client.clone(), user_store.clone(), cx);
     language_models::init(user_store.clone(), client.clone(), cx);

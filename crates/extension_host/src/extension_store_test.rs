@@ -276,7 +276,12 @@ async fn test_extension_store(cx: &mut TestAppContext) {
     let theme_registry = Arc::new(ThemeRegistry::new(Box::new(())));
     theme_extension::init(proxy.clone(), theme_registry.clone(), cx.executor());
     let language_registry = Arc::new(LanguageRegistry::test(cx.executor()));
-    language_extension::init(LspAccess::Noop, proxy.clone(), language_registry.clone());
+    language_extension::init(
+        LspAccess::Noop,
+        proxy.clone(),
+        language_registry.clone(),
+        None,
+    );
     let node_runtime = NodeRuntime::unavailable();
 
     let store = cx.new(|cx| {
@@ -593,6 +598,7 @@ async fn test_extension_store_with_test_extension(cx: &mut TestAppContext) {
         LspAccess::ViaLspStore(project.update(cx, |project, _| project.lsp_store())),
         proxy.clone(),
         language_registry.clone(),
+        None,
     );
     let node_runtime = NodeRuntime::unavailable();
 

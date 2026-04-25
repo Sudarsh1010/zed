@@ -548,6 +548,7 @@ fn main() {
             }),
             extension_host_proxy.clone(),
             languages.clone(),
+            Some(node_runtime.clone()),
         );
 
         Client::set_global(client.clone(), cx);

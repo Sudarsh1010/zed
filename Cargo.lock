@@ -9474,6 +9474,7 @@ dependencies = [
  "language",
  "log",
  "lsp",
+ "node_runtime",
  "project",
  "serde",
  "serde_json",
